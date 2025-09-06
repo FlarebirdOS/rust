@@ -1,6 +1,6 @@
-pkgname=(rust rust-libs-32bit)
+pkgname=(rust rust-libs-32bit rust-src)
 pkgver=1.89.0
-pkgrel=1
+pkgrel=2
 pkgdesc="Systems programming language focused on safety, speed and concurrency"
 arch=('x86_64')
 url="https://blog.rust-lang.org/"
@@ -80,7 +80,7 @@ docs = false
 locked-deps = true
 
 # Specify which extended tools (those from the default install).
-tools = ["cargo", "clippy", "rustdoc", "rustfmt"]
+tools = ["cargo", "clippy", "rustdoc", "rustfmt", "src"]
 
 [install]
 prefix = "/usr"
@@ -166,6 +166,8 @@ package_rust() {
     unset LIB{SSH2,SQLITE3}_SYS_USE_PKG_CONFIG
 
     _pick rust-libs-32bit ${pkgdir}/usr/lib64/rustlib/i686-unknown-linux-gnu
+
+    _pick rust-src ${pkgdir}/usr/lib64/rustlib/src
 }
 
 package_rust-libs-32bit() {
@@ -175,6 +177,13 @@ package_rust-libs-32bit() {
         'glibc-32bit'
         'rust'
     )
+
+    mv ${pkgname}/* ${pkgdir}
+}
+
+package_rust-src() {
+    pkgdesc="Source code for the Rust standard library"
+    depends=('rust')
 
     mv ${pkgname}/* ${pkgdir}
 }
