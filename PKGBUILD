@@ -1,6 +1,10 @@
-pkgname=(rust rust-libs-32bit rust-src)
-pkgver=1.89.0
-pkgrel=2
+pkgname=(
+    rust
+    rust-libs-32bit
+    rust-src
+)
+pkgver=1.90.0
+pkgrel=3
 pkgdesc="Systems programming language focused on safety, speed and concurrency"
 arch=('x86_64')
 url="https://blog.rust-lang.org/"
@@ -12,6 +16,7 @@ depends=(
     'gcc-libs'
     'glibc'
     'libssh2'
+    'lld'
     'llvm-libs'
     'openssl'
     'sqlite'
@@ -23,7 +28,6 @@ makedepends=(
     'gcc-libs-32bit'
     'glibc-32bit'
     'libffi'
-    'lld'
     'llvm'
     'ninja'
     'perl'
@@ -31,18 +35,42 @@ makedepends=(
 )
 options=('!emptydirs' '!lto')
 source=(https://static.rust-lang.org/dist/rustc-${pkgver}-src.tar.xz
+    0001-compiler-rt-Fix-compilation-with-glibc-2.42.patch
     0002-bootstrap-Change-bash-completion-dir.patch
     0003-compiler-Change-LLVM-targets.patch
-    0001-compiler-rt-Fix-compilation-with-glibc-2.42.patch
-    0007-bootstrap-Workaround-for-system-stage0.patch)
-sha256sums=(0b9d55610d8270e06c44f459d1e2b7918a5e673809c592abed9b9c600e33d95a
-    fd16f7ec09c293adf56c674b8946eb074ed9b839f9313578afe008aab60df939
-    616c2aa7ef452071abc16b3deef4030d0c3cb51ac2fab9cf53f078883f758d09
+    0004-compiler-Use-ld.lld-by-default.patch
+    0007-bootstrap-Workaround-for-system-stage0.patch
+    0008-bootstrap-Workaround-for-1.90.0-stage0.patch)
+sha256sums=(6bfeaddd90ffda2f063492b092bfed925c4b8c701579baf4b1316e021470daac
     cffd2619f549ac94d98e17831b186d48447a2d694d9cf4ae723026fb794a7f92
-    8d7a96d99ad0e7e1ebc8c41fb5c8410bb6943acabf6e54a32fe6c5f6de545774)
+    739772412af04ff6f92c9668e0130e17d4798cf843e4bbedd84e352cab795873
+    55916bc444bac1ac2ff1f78ded47077316a1dab1e7bdde362bcf08be2a28b2f8
+    913ea033f7d76e097ddcbd2015dd6c61911b8fbb25b071469f349dd8a0cd3799
+    e7167380b91fa9c0b6590b0d97d9b506570a7c6930b635861ea48a493dac4096
+    2ebaccc439f998da2658d346677d580f9accfd757874f44f1e6411c40619d1ff)
 
 prepare() {
     cd rustc-${pkgver}-src
+
+    # Fix build with glibc 2.42
+    patch -Np1 < ${srcdir}/0001-compiler-rt-Fix-compilation-with-glibc-2.42.patch
+
+    # Put bash completions where they belong
+    patch -Np1 < ${srcdir}/0002-bootstrap-Change-bash-completion-dir.patch
+
+    # Use our *-pc-linux-gnu targets, making LTO with clang simpler
+    patch -Np1 < ${srcdir}/0003-compiler-Change-LLVM-targets.patch
+
+    # Use our ld.lld
+    patch -Np1 < ${srcdir}/0004-compiler-Use-ld.lld-by-default.patch
+
+    # Fix build with system rustc
+    # https://github.com/rust-lang/rust/issues/143735
+    patch -Np1 < ${srcdir}/0007-bootstrap-Workaround-for-system-stage0.patch
+
+    # Fix build with system rustc 1.90.0
+    # https://github.com/rust-lang/rust/issues/143765
+    patch -Np1 < ${srcdir}/0008-bootstrap-Workaround-for-1.90.0-stage0.patch
 
     cat << EOF > config.toml
 # See bootstrap.toml.example for more possible options,
@@ -53,7 +81,7 @@ prepare() {
 # Tell x.py the editors have reviewed the content of this file
 # and updated it to follow the major changes of the building system,
 # so x.py will not warn us to do such a review.
-change-id = 142379
+change-id = 144675
 
 [llvm]
 download-ci-llvm = false
@@ -117,19 +145,6 @@ ar = "/usr/bin/${CHOST}-gcc-ar"
 ranlib = "/usr/bin/${CHOST}-gcc-ranlib"
 llvm-config = "/usr/bin/llvm-config"
 EOF
-
-    # Put bash completions where they belong
-    patch -Np1 < ${srcdir}/0002-bootstrap-Change-bash-completion-dir.patch
-
-    # Use our *-pc-linux-gnu targets, making LTO with clang simpler
-    patch -Np1 < ${srcdir}/0003-compiler-Change-LLVM-targets.patch
-
-    # Fix build with glibc 2.42
-    patch -Np1 < ${srcdir}/0001-compiler-rt-Fix-compilation-with-glibc-2.42.patch
-
-    # Fix build with system rustc
-    # https://github.com/rust-lang/rust/issues/143735
-    patch -Np1 < ${srcdir}/0007-bootstrap-Workaround-for-system-stage0.patch
 }
 
 build() {
@@ -162,6 +177,8 @@ package_rust() {
     install -vdm755 ${pkgdir}/usr/share/zsh/site-functions
     ln -sfv /usr/share/zsh/site-functions/_cargo \
             ${pkgdir}/usr/share/zsh/site-functions
+
+    mv -v ${pkgdir}/etc/bash_completion.d/cargo ${pkgdir}/usr/share/bash-completion/completions
 
     unset LIB{SSH2,SQLITE3}_SYS_USE_PKG_CONFIG
 

@@ -3,14 +3,14 @@ From: "Jan Alexander Steffens (heftig)" <heftig@archlinux.org>
 Date: Fri, 12 Mar 2021 17:31:56 +0100
 Subject: [PATCH] compiler: Change LLVM targets
 
- - Change x86_64-unknown-linux-gnu to use x86_64-flarebird-linux-gnu
- - Change i686-unknown-linux-gnu to use i686-flarebird-linux-gnu
+ - Change x86_64-unknown-linux-gnu to use x86_64-pc-linux-gnu
+ - Change i686-unknown-linux-gnu to use i686-pc-linux-gnu
 
-Reintroduce the aliasing that was removed in 1.52.0 and alias the -flarebird-
-triples to the -unknown- triples. This avoids defining proper -flarebird-
+Reintroduce the aliasing that was removed in 1.52.0 and alias the -pc-
+triples to the -unknown- triples. This avoids defining proper -pc-
 targets, as things break when this is done:
 
- - The crate ecosystem expects the -unknown- targets. Making -flarebird-
+ - The crate ecosystem expects the -unknown- targets. Making -pc-
    rustc's host triple (and thus default target) would break various
    crates.
  - Firefox's build breaks when the host triple (from
@@ -23,17 +23,17 @@ targets, as things break when this is done:
  3 files changed, 8 insertions(+), 2 deletions(-)
 
 diff --git a/compiler/rustc_session/src/config.rs b/compiler/rustc_session/src/config.rs
-index 87e4b0a17aad..f821b06fcb0e 100644
+index 8f624e0fb2fc..28f819efaa2a 100644
 --- a/compiler/rustc_session/src/config.rs
 +++ b/compiler/rustc_session/src/config.rs
-@@ -2262,6 +2262,12 @@ pub fn parse_target_triple(early_dcx: &EarlyDiagCtxt, matches: &getopts::Matches
+@@ -2353,6 +2353,12 @@ pub fn parse_target_triple(early_dcx: &EarlyDiagCtxt, matches: &getopts::Matches
                  early_dcx.early_fatal(format!("target file {path:?} does not exist"))
              })
          }
-+        Some(target) if &target == "x86_64-flarebird-linux-gnu" => {
++        Some(target) if &target == "x86_64-pc-linux-gnu" => {
 +            TargetTuple::from_tuple("x86_64-unknown-linux-gnu")
 +        }
-+        Some(target) if &target == "i686-flarebird-linux-gnu" => {
++        Some(target) if &target == "i686-pc-linux-gnu" => {
 +            TargetTuple::from_tuple("i686-unknown-linux-gnu")
 +        }
          Some(target) => TargetTuple::TargetTuple(target),
@@ -48,7 +48,7 @@ index c70c026f9f71..5ffa2eb8eddb 100644
  
      Target {
 -        llvm_target: "i686-unknown-linux-gnu".into(),
-+        llvm_target: "i686-flarebird-linux-gnu".into(),
++        llvm_target: "i686-pc-linux-gnu".into(),
          metadata: TargetMetadata {
              description: Some("32-bit Linux (kernel 3.2, glibc 2.17+)".into()),
              tier: Some(1),
@@ -61,7 +61,7 @@ index 0c8353fad182..d2b414766d4d 100644
  
      Target {
 -        llvm_target: "x86_64-unknown-linux-gnu".into(),
-+        llvm_target: "x86_64-flarebird-linux-gnu".into(),
++        llvm_target: "x86_64-pc-linux-gnu".into(),
          metadata: TargetMetadata {
              description: Some("64-bit Linux (kernel 3.2+, glibc 2.17+)".into()),
              tier: Some(1),
